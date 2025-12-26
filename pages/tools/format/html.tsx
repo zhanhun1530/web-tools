@@ -95,7 +95,7 @@ export default function HtmlFormat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="粘贴HTML代码"
-                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-[600px] p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={handleFormat}
@@ -118,12 +118,13 @@ export default function HtmlFormat() {
                   复制
                 </button>
               </div>
-              <textarea
-                value={output}
-                readOnly
-                placeholder="格式化后的代码将显示在这里"
-                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50 focus:outline-none"
-              />
+              <div className="w-full h-[600px] p-4 border border-gray-300 rounded-lg bg-gray-900 overflow-auto">
+                {output ? (
+                  <pre className="text-sm font-mono text-green-400 whitespace-pre-wrap">{output}</pre>
+                ) : (
+                  <div className="text-gray-500">格式化后的代码将显示在这里</div>
+                )}
+              </div>
             </div>
           </div>
         </div>

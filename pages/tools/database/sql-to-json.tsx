@@ -8,110 +8,90 @@ export default function SqlToJson() {
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
 
-  // 改进的解析函数，更好地处理边框格式
-  const parseTable = (text: string) => {
-    try {
-      const lines = text.split('\n').filter(line => line.trim())
-      if (lines.length === 0) return []
+  // 清理带边框格式的辅助函数
+  const cleanBorderTableData = (rawData: string): string => {
+    // 1. 按行分割，过滤空行和纯分隔线（仅包含+、-、|、空格的行）
+    const lines = rawData.split('\n').filter(line => {
+      const trimmedLine = line.trim()
+      if (!trimmedLine) return false
+      // 匹配纯分隔线（包含+、-、|，无有效文本）
+      return !/^[\+\-\|\s]+$/.test(trimmedLine)
+    })
 
-      // 检测表格格式
-      const hasBorders = lines.some(line => line.includes('|') || line.includes('+') || line.includes('-'))
-      
-      let headers: string[] = []
-      const rows: any[] = []
-      
-      if (hasBorders) {
-        // 处理带边框的表格
-        let headerLineIndex = -1
-        
-        // 找到表头行（通常在第一行或分隔线后的第一行）
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim()
-          // 跳过分隔线（只包含 + - | 的行）
-          if (/^[\+\-\|\s]+$/.test(line)) continue
-          
-          if (line.includes('|')) {
-            headerLineIndex = i
-            // 提取表头
-            headers = line.split('|')
-              .map(h => h.trim())
-              .filter(h => h && !/^[\+\-\s]+$/.test(h))
-            break
-          }
-        }
-        
-        if (headers.length === 0) {
-          throw new Error('无法识别表头')
-        }
-        
-        // 处理数据行
-        for (let i = headerLineIndex + 1; i < lines.length; i++) {
-          const line = lines[i].trim()
-          // 跳过分隔线
-          if (/^[\+\-\|\s]+$/.test(line)) continue
-          
-          if (line.includes('|')) {
-            // 分割时保留空值，以便正确对齐
-            const parts = line.split('|')
-            // 移除首尾的空元素（如果存在）
-            const cleanParts = parts
-              .map((p, idx) => {
-                // 首尾可能是空的（因为 | 开头或结尾）
-                if (idx === 0 || idx === parts.length - 1) {
-                  return p.trim()
-                }
-                return p.trim()
-              })
-              .filter((p, idx) => {
-                // 过滤掉纯分隔符，但保留空字符串（表示空单元格）
-                return !/^[\+\-\s]+$/.test(p)
-              })
-            
-            // 如果列数匹配或接近，创建行对象
-            if (cleanParts.length > 0) {
-              const row: any = {}
-              headers.forEach((header, idx) => {
-                // 如果数据列数少于表头，缺失的列设为空字符串
-                row[header] = cleanParts[idx] !== undefined ? cleanParts[idx] : ''
-              })
-              rows.push(row)
-            }
-          }
-        }
-      } else {
-        // 处理无边框的表格（空格分隔或制表符分隔）
-        // 第一行作为表头
-        const firstLine = lines[0].trim()
-        if (firstLine.includes('\t')) {
-          headers = firstLine.split('\t').map(h => h.trim())
-        } else {
-          // 使用多个空格作为分隔符
-          headers = firstLine.split(/\s{2,}/).map(h => h.trim()).filter(h => h)
-        }
-        
-        // 处理数据行
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim()
-          if (!line) continue
-          
-          let values: string[]
-          if (line.includes('\t')) {
-            values = line.split('\t').map(v => v.trim())
-          } else {
-            values = line.split(/\s{2,}/).map(v => v.trim()).filter(v => v)
-          }
-          
-          if (values.length === headers.length) {
-            const row: any = {}
-            headers.forEach((header, idx) => {
-              row[header] = values[idx] || ''
-            })
-            rows.push(row)
-          }
-        }
+    // 2. 处理每一行：去除|符号，清理多余空格（转为制表符分隔，保持与原有格式兼容）
+    const cleanedLines = lines.map(line => {
+      // 去除所有|符号
+      let cleanedLine = line.replace(/\|/g, '')
+      // 将多个连续空格替换为单个制表符（处理列之间的空格分隔）
+      cleanedLine = cleanedLine.replace(/\s{2,}/g, '\t')
+      // 去除首尾空格
+      return cleanedLine.trim()
+    })
+
+    // 3. 过滤清理后仍为空的行
+    return cleanedLines.filter(line => line.trim()).join('\n')
+  }
+
+  // 转换核心函数：SQL表格数据转JSON（兼容两种格式）
+  const parseTable = (sqlData: string) => {
+    try {
+      if (!sqlData.trim()) {
+        throw new Error('请输入有效的SQL表格数据')
       }
-      
-      return rows
+
+      // 第一步：先判断并清理带边框格式的数据，转换为兼容的制表符分隔格式
+      const hasBorder = /[\+\-\|]/.test(sqlData)
+      let processedData = sqlData
+      if (hasBorder) {
+        processedData = cleanBorderTableData(sqlData)
+      }
+
+      // 后续逻辑基于处理后的制表符分隔数据进行解析
+      // 按行分割数据，过滤空行
+      const lines = processedData.split('\n').filter(line => line.trim())
+      if (lines.length < 2) {
+        throw new Error('数据格式错误：至少需要包含表头和一行数据')
+      }
+
+      // 解析表头（第一行），按制表符分割并去除首尾空格
+      const headers = lines[0].split('\t').map(header => header.trim()).filter(header => header)
+      // 解析数据行（从第二行开始）
+      const dataRows = lines.slice(1)
+
+      // 校验表头是否有效
+      if (headers.length === 0) {
+        throw new Error('无法解析有效表头，请检查数据格式')
+      }
+
+      // 构建JSON数组
+      const jsonArray: any[] = []
+      dataRows.forEach((row) => {
+        // 按制表符分割当前行数据
+        const values = row.split('\t').map(val => val.trim())
+        const obj: any = {}
+
+        // 映射表头和对应的值
+        headers.forEach((header, colIndex) => {
+          // 处理值：去除首尾空格，空值转为空字符串
+          let value = values[colIndex] ? values[colIndex].trim() : ''
+          // 处理NULL字符串转为实际的null
+          if (value.toUpperCase() === 'NULL') {
+            obj[header] = null
+          } 
+          // 尝试转换数字类型（整数/浮点数）
+          else if (/^-?\d+$/.test(value)) {
+            obj[header] = parseInt(value, 10)
+          } else if (/^-?\d+\.\d+$/.test(value)) {
+            obj[header] = parseFloat(value)
+          } else {
+            obj[header] = value
+          }
+        })
+
+        jsonArray.push(obj)
+      })
+
+      return jsonArray
     } catch (err: any) {
       throw new Error(`解析错误: ${err.message}`)
     }

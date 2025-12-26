@@ -25,10 +25,13 @@ export default function Base64() {
       setOutput(decoded)
       
       // 检查是否是图片
-      if (input.startsWith('data:image/') || /^[A-Za-z0-9+/=]+$/.test(input)) {
+      const cleanInput = input.trim()
+      if (cleanInput.startsWith('data:image/')) {
+        setImagePreview(cleanInput)
+      } else if (/^[A-Za-z0-9+/=]+$/.test(cleanInput)) {
+        // 尝试作为图片显示
         try {
-          // 尝试作为图片显示
-          const imgData = input.startsWith('data:') ? input : `data:image/png;base64,${input}`
+          const imgData = `data:image/png;base64,${cleanInput}`
           setImagePreview(imgData)
         } catch {
           setImagePreview('')
@@ -40,6 +43,17 @@ export default function Base64() {
       setOutput(`解码错误: ${err.message}`)
       setImagePreview('')
     }
+  }
+
+  const handleDownloadImage = () => {
+    if (!imagePreview) return
+    
+    const link = document.createElement('a')
+    link.href = imagePreview
+    link.download = `image-${Date.now()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const handleConvert = () => {
@@ -173,9 +187,17 @@ export default function Base64() {
               />
               {imagePreview && (
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    图片预览
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      图片预览
+                    </label>
+                    <button
+                      onClick={handleDownloadImage}
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                    >
+                      下载图片
+                    </button>
+                  </div>
                   <img
                     src={imagePreview}
                     alt="Base64图片预览"

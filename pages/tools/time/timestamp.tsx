@@ -8,20 +8,34 @@ export default function Timestamp() {
   const [dateTime, setDateTime] = useState('')
   const [isoDateTime, setIsoDateTime] = useState('')
   const [error, setError] = useState('')
+  const [currentTime, setCurrentTime] = useState({ seconds: 0, milliseconds: 0, date: '', iso: '' })
 
   useEffect(() => {
-    // 默认显示当前时间
-    const now = new Date()
-    setTimestamp(Math.floor(now.getTime() / 1000).toString())
-    setDateTime(now.toLocaleString('zh-CN', { 
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }))
-    setIsoDateTime(now.toISOString())
+    // 更新当前时间
+    const updateCurrentTime = () => {
+      const now = new Date()
+      const seconds = Math.floor(now.getTime() / 1000)
+      const milliseconds = now.getTime()
+      
+      setCurrentTime({
+        seconds,
+        milliseconds,
+        date: now.toLocaleString('zh-CN', { 
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }),
+        iso: now.toISOString()
+      })
+    }
+
+    updateCurrentTime()
+    const interval = setInterval(updateCurrentTime, 1000) // 每秒更新
+
+    return () => clearInterval(interval)
   }, [])
 
   const handleTimestampToDate = () => {
@@ -109,18 +123,30 @@ export default function Timestamp() {
   }
 
   const handleCurrentTime = () => {
-    const now = new Date()
-    setTimestamp(Math.floor(now.getTime() / 1000).toString())
-    setDateTime(now.toLocaleString('zh-CN', { 
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }))
-    setIsoDateTime(now.toISOString())
+    setTimestamp(currentTime.seconds.toString())
+    setDateTime(currentTime.date)
+    setIsoDateTime(currentTime.iso)
     setError('')
+  }
+
+  const handleConvertSecondsToMs = () => {
+    if (timestamp && /^\d+$/.test(timestamp)) {
+      const ts = parseInt(timestamp)
+      if (ts < 10000000000) {
+        // 是秒，转为毫秒
+        setTimestamp((ts * 1000).toString())
+      }
+    }
+  }
+
+  const handleConvertMsToSeconds = () => {
+    if (timestamp && /^\d+$/.test(timestamp)) {
+      const ts = parseInt(timestamp)
+      if (ts >= 10000000000) {
+        // 是毫秒，转为秒
+        setTimestamp(Math.floor(ts / 1000).toString())
+      }
+    }
   }
 
   return (
@@ -143,6 +169,29 @@ export default function Timestamp() {
             <p className="text-gray-600">
               支持时间戳（秒/毫秒）、本地时间和ISO时间格式之间的转换
             </p>
+          </div>
+
+          {/* 实时当前时间显示 */}
+          <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg text-white">
+            <h2 className="text-xl font-bold mb-4">当前时间（实时更新）</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <div className="text-sm opacity-90">时间戳（秒）</div>
+                <div className="text-2xl font-mono font-bold">{currentTime.seconds}</div>
+              </div>
+              <div>
+                <div className="text-sm opacity-90">时间戳（毫秒）</div>
+                <div className="text-2xl font-mono font-bold">{currentTime.milliseconds}</div>
+              </div>
+              <div>
+                <div className="text-sm opacity-90">本地时间</div>
+                <div className="text-lg font-mono">{currentTime.date}</div>
+              </div>
+              <div>
+                <div className="text-sm opacity-90">ISO时间</div>
+                <div className="text-sm font-mono">{currentTime.iso}</div>
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -170,6 +219,20 @@ export default function Timestamp() {
                     className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     转换
+                  </button>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={handleConvertSecondsToMs}
+                    className="text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  >
+                    秒→毫秒
+                  </button>
+                  <button
+                    onClick={handleConvertMsToSeconds}
+                    className="text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  >
+                    毫秒→秒
                   </button>
                 </div>
               </div>
@@ -259,4 +322,3 @@ export default function Timestamp() {
     </>
   )
 }
-

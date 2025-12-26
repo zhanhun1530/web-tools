@@ -75,29 +75,27 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {categories.map((category) => (
               <div
                 key={category.id}
-                className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+                className="bg-white rounded-xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 min-h-[300px] flex flex-col"
               >
-                <div className="flex items-center mb-4">
-                  <span className="text-4xl mr-3">{category.icon}</span>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      {category.name}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      {category.description}
-                    </p>
-                  </div>
+                <div className="flex flex-col items-center mb-6">
+                  <span className="text-6xl mb-4">{category.icon}</span>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                    {category.name}
+                  </h2>
+                  <p className="text-sm text-gray-500 text-center">
+                    {category.description}
+                  </p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3 flex-grow flex flex-col justify-end">
                   {category.tools.map((tool) => (
                     <button
                       key={tool.path}
                       onClick={() => router.push(tool.path)}
-                      className="w-full text-left px-4 py-2 bg-gray-50 hover:bg-blue-50 rounded-md transition-colors text-gray-700 hover:text-blue-600"
+                      className="w-full text-left px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-lg transition-all duration-200 text-gray-800 hover:text-blue-700 font-medium shadow-sm hover:shadow-md border border-blue-100 hover:border-blue-300"
                     >
                       {tool.name}
                     </button>
