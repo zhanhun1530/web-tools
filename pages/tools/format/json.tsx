@@ -8,31 +8,81 @@ export default function JsonFormat() {
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [isMinified, setIsMinified] = useState(false)
+  const [outputType, setOutputType] = useState<'json' | 'xml'>('json')
 
-  // 简单的JSON语法高亮
+  // 改进的JSON语法高亮，包括括号、逗号等标点符号
   const highlightJson = (json: string): string => {
     if (!json) return ''
-    return json
+    
+    // 先转义HTML特殊字符
+    let result = json
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-        let cls = 'text-gray-300'
-        if (/^"/.test(match)) {
-          if (/:$/.test(match)) {
-            cls = 'text-blue-400' // key
-          } else {
-            cls = 'text-green-400' // string value
-          }
-        } else if (/true|false/.test(match)) {
-          cls = 'text-purple-400' // boolean
-        } else if (/null/.test(match)) {
-          cls = 'text-gray-500' // null
-        } else {
-          cls = 'text-yellow-400' // number
-        }
-        return `<span class="${cls}">${match}</span>`
-      })
+    
+    // 使用特殊标记来避免重复处理
+    const markers = {
+      STRING_KEY: '___STRING_KEY___',
+      STRING_VALUE: '___STRING_VALUE___',
+      NUMBER: '___NUMBER___',
+      BOOLEAN_TRUE: '___BOOLEAN_TRUE___',
+      BOOLEAN_FALSE: '___BOOLEAN_FALSE___',
+      NULL: '___NULL___',
+    }
+    
+    // 先处理字符串（键名和值）
+    const stringMatches: Array<{ match: string; isKey: boolean }> = []
+    result = result.replace(/("(?:[^"\\]|\\.)*")/g, (match, offset, str) => {
+      // 检查后面是否有冒号（键名）
+      const after = str.substring(offset + match.length).trim()
+      const isKey = after.startsWith(':')
+      stringMatches.push({ match, isKey })
+      return isKey ? markers.STRING_KEY : markers.STRING_VALUE
+    })
+    
+    // 处理数字
+    const numberMatches: string[] = []
+    result = result.replace(/(-?\d+\.?\d*)/g, (match) => {
+      numberMatches.push(match)
+      return markers.NUMBER
+    })
+    
+    // 处理布尔值
+    result = result.replace(/\btrue\b/g, markers.BOOLEAN_TRUE)
+    result = result.replace(/\bfalse\b/g, markers.BOOLEAN_FALSE)
+    
+    // 处理null
+    result = result.replace(/\bnull\b/g, markers.NULL)
+    
+    // 高亮标点符号（括号、逗号、冒号）- 使用浅灰色，在深色背景上可见
+    result = result.replace(/([{}[\],:])/g, '<span class="text-gray-300">$1</span>')
+    
+    // 恢复字符串
+    let stringIndex = 0
+    result = result.replace(new RegExp(markers.STRING_KEY, 'g'), () => {
+      const item = stringMatches[stringIndex++]
+      return `<span class="text-blue-400">${item.match}</span>`
+    })
+    result = result.replace(new RegExp(markers.STRING_VALUE, 'g'), () => {
+      const item = stringMatches[stringIndex++]
+      return `<span class="text-green-400">${item.match}</span>`
+    })
+    
+    // 恢复数字
+    let numberIndex = 0
+    result = result.replace(new RegExp(markers.NUMBER, 'g'), () => {
+      const match = numberMatches[numberIndex++]
+      return `<span class="text-yellow-400">${match}</span>`
+    })
+    
+    // 恢复布尔值
+    result = result.replace(new RegExp(markers.BOOLEAN_TRUE, 'g'), '<span class="text-purple-400">true</span>')
+    result = result.replace(new RegExp(markers.BOOLEAN_FALSE, 'g'), '<span class="text-purple-400">false</span>')
+    
+    // 恢复null
+    result = result.replace(new RegExp(markers.NULL, 'g'), '<span class="text-gray-400">null</span>')
+    
+    return result
   }
 
   useEffect(() => {
@@ -43,6 +93,7 @@ export default function JsonFormat() {
         const formatted = JSON.stringify(parsed, null, 2)
         setOutput(formatted)
         setIsMinified(false)
+        setOutputType('json')
         setError('')
       } catch (err: any) {
         setError(`JSON格式错误: ${err.message}`)
@@ -61,6 +112,7 @@ export default function JsonFormat() {
       const minified = JSON.stringify(parsed)
       setOutput(minified)
       setIsMinified(true)
+      setOutputType('json')
       setError('')
     } catch (err: any) {
       setError(`JSON格式错误: ${err.message}`)
@@ -74,6 +126,7 @@ export default function JsonFormat() {
       const formatted = JSON.stringify(parsed, null, 2)
       setOutput(formatted)
       setIsMinified(false)
+      setOutputType('json')
       setError('')
     } catch (err: any) {
       setError(`JSON格式错误: ${err.message}`)
@@ -114,6 +167,7 @@ export default function JsonFormat() {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}>\n${jsonToXml(parsed)}</${rootName}>`
       setOutput(xml)
       setIsMinified(false)
+      setOutputType('xml')
       setError('')
     } catch (err: any) {
       setError(`转换失败: ${err.message}`)
@@ -137,7 +191,7 @@ export default function JsonFormat() {
         <title>JSON格式化 - 在线工具</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 max-w-[95%]">
           <div className="mb-6">
             <button
               onClick={() => router.push('/')}
@@ -194,7 +248,7 @@ export default function JsonFormat() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
+            <div className="w-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 输入JSON
               </label>
@@ -202,24 +256,30 @@ export default function JsonFormat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="粘贴JSON数据，自动格式化"
-                className="w-full h-[600px] p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-[70vh] min-h-[600px] p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
               />
             </div>
 
-            <div>
+            <div className="w-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                格式化后的JSON
+                {outputType === 'xml' ? '转换后的XML' : '格式化后的JSON'}
               </label>
               <div
-                className="w-full h-[600px] p-4 border border-gray-300 rounded-lg bg-gray-900 overflow-auto"
+                className="w-full h-[70vh] min-h-[600px] p-4 border border-gray-300 rounded-lg bg-gray-900 overflow-auto"
               >
                 {output ? (
-                  <pre
-                    className="text-sm font-mono"
-                    dangerouslySetInnerHTML={{ __html: highlightJson(output) }}
-                  />
+                  outputType === 'xml' ? (
+                    <pre className="text-sm font-mono text-green-400 whitespace-pre-wrap">{output}</pre>
+                  ) : (
+                    <pre
+                      className="text-sm font-mono"
+                      dangerouslySetInnerHTML={{ __html: highlightJson(output) }}
+                    />
+                  )
                 ) : (
-                  <div className="text-gray-500">格式化后的JSON将显示在这里</div>
+                  <div className="text-gray-500">
+                    {outputType === 'xml' ? '转换后的XML将显示在这里' : '格式化后的JSON将显示在这里'}
+                  </div>
                 )}
               </div>
             </div>

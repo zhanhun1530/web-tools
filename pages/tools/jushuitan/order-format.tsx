@@ -15,6 +15,7 @@ export default function OrderFormatJushuitan() {
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [saveHistoryEnabled, setSaveHistoryEnabled] = useState(true)
   const HISTORY_KEY = 'jushuitanOrderFormatHistory'
   const MAX_HISTORY = 8
 
@@ -24,6 +25,11 @@ export default function OrderFormatJushuitan() {
       const saved = localStorage.getItem(HISTORY_KEY)
       if (saved) {
         setHistory(JSON.parse(saved))
+      }
+      // 加载保存历史记录的开关状态
+      const saveEnabled = localStorage.getItem(`${HISTORY_KEY}_enabled`)
+      if (saveEnabled !== null) {
+        setSaveHistoryEnabled(saveEnabled === 'true')
       }
     } catch (e) {
       console.error('加载历史记录失败', e)
@@ -48,6 +54,9 @@ export default function OrderFormatJushuitan() {
   }
 
   const saveHistory = (record: HistoryItem) => {
+    // 检查是否开启历史记录
+    if (!saveHistoryEnabled) return
+    
     try {
       let newHistory = [...history]
       // 移除重复记录
@@ -63,6 +72,11 @@ export default function OrderFormatJushuitan() {
     } catch (e) {
       console.error('保存历史记录失败', e)
     }
+  }
+
+  const handleToggleSaveHistory = (enabled: boolean) => {
+    setSaveHistoryEnabled(enabled)
+    localStorage.setItem(`${HISTORY_KEY}_enabled`, String(enabled))
   }
 
   const loadHistory = (item: HistoryItem) => {
@@ -173,19 +187,33 @@ export default function OrderFormatJushuitan() {
           </div>
 
           {/* 历史记录 */}
-          {history.length > 0 && (
-            <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  历史解析记录（最多{MAX_HISTORY}条）
-                </span>
+          <div className="mb-6 p-4 bg-gray-100 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                历史解析记录（最多{MAX_HISTORY}条）
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={saveHistoryEnabled}
+                      onChange={(e) => handleToggleSaveHistory(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    <span className="ml-2 text-sm text-gray-700">保存历史</span>
+                  </label>
+                </div>
                 <button
                   onClick={clearHistory}
-                  className="text-sm text-red-600 hover:text-red-800"
+                  className="text-sm text-red-600 hover:text-red-800 px-2 py-1 bg-white border border-red-300 rounded hover:bg-red-50"
                 >
                   清空记录
                 </button>
               </div>
+            </div>
+            {history.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {history.map((item, index) => (
                   <button
@@ -197,8 +225,10 @@ export default function OrderFormatJushuitan() {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-sm text-gray-500 py-2">暂无历史记录</div>
+            )}
+          </div>
 
           {error && (
             <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">

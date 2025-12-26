@@ -11,9 +11,9 @@ export default function Home() {
       description: '聚水潭相关数据处理工具',
       icon: '📦',
       tools: [
-        { name: '组装聚水潭上送数据', path: '/tools/jushuitan/assemble' },
-        { name: '组装聚水潭数据并格式化', path: '/tools/jushuitan/assemble-format' },
-        { name: '聚水潭订单Json格式化', path: '/tools/jushuitan/order-format' },
+        { name: '聚水潭订单数据并格式化JSON完整(剔除、合并、拆分)', path: '/tools/jushuitan/assemble-format' },
+        { name: '聚水潭订单剔除(合并、拆分)数据', path: '/tools/jushuitan/assemble' },
+        { name: '聚水潭订单数据JSON格式化', path: '/tools/jushuitan/order-format' },
       ]
     },
     {
