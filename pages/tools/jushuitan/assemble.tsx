@@ -1,0 +1,98 @@
+import { useState } from 'react'
+import Head from 'next/head'
+import { useRouter } from 'next/router'
+
+export default function AssembleJushuitan() {
+  const router = useRouter()
+  const [input, setInput] = useState('')
+  const [output, setOutput] = useState('')
+
+  const handleConvert = () => {
+    try {
+      const lines = input.split('\n').filter(line => line.trim())
+      const result: any = {}
+      
+      lines.forEach(line => {
+        const [key, ...valueParts] = line.split(':')
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join(':').trim()
+          result[key.trim()] = value
+        }
+      })
+      
+      setOutput(JSON.stringify(result, null, 2))
+    } catch (err: any) {
+      setOutput(`错误: ${err.message}`)
+    }
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(output)
+    alert('已复制到剪贴板')
+  }
+
+  return (
+    <>
+      <Head>
+        <title>组装聚水潭上送数据 - 在线工具</title>
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <button
+              onClick={() => router.push('/')}
+              className="text-blue-600 hover:text-blue-800 mb-4"
+            >
+              ← 返回首页
+            </button>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              组装聚水潭上送数据
+            </h1>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                输入数据（键值对格式）
+              </label>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="输入键值对，每行一个，格式：key: value"
+                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleConvert}
+                className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                转换
+              </button>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-medium text-gray-700">
+                  输出JSON
+                </label>
+                <button
+                  onClick={handleCopy}
+                  disabled={!output}
+                  className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                >
+                  复制
+                </button>
+              </div>
+              <textarea
+                value={output}
+                readOnly
+                placeholder="转换后的JSON将显示在这里"
+                className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
