@@ -110,6 +110,7 @@ export default function JsonFormat() {
         return xml
       }
       
+      const rootName = 'root'
       const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}>\n${jsonToXml(parsed)}</${rootName}>`
       setOutput(xml)
       setIsMinified(false)
