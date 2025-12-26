@@ -60,8 +60,12 @@ export default function AES() {
       combined.set(iv)
       combined.set(new Uint8Array(encrypted), iv.length)
 
-      // 转换为Base64
-      const base64 = btoa(String.fromCharCode(...combined))
+      // 转换为Base64（兼容es5，不使用展开运算符）
+      const chars: string[] = []
+      for (let i = 0; i < combined.length; i++) {
+        chars.push(String.fromCharCode(combined[i]))
+      }
+      const base64 = btoa(chars.join(''))
       setOutput(base64)
     } catch (err: any) {
       setError(`加密错误: ${err.message}`)
